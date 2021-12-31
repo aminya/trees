@@ -206,6 +206,25 @@ impl<T> Node<T> {
         None
     }
 
+    /// Returns a reference to the next sibling of this node.
+    pub fn next(&self) -> &Option<NonNull<Node<T>>> {
+        return &self.next;
+    }
+
+    /// Returns a reference to the previous sibling of this node.
+    pub fn prev(&self) -> &Option<NonNull<Node<T>>> {
+        return &self.prev;
+    }
+
+    /// Returns a mutable reference to the next sibling of this node.
+    pub fn next_mut(&mut self) -> &mut Option<NonNull<Node<T>>> {
+        return &mut self.next;
+    }
+
+    /// Returns a mutable reference to the previous sibling of this node.
+    pub fn prev_mut(&mut self) -> &mut Option<NonNull<Node<T>>> {
+        return &mut self.prev;
+    }
 
     /// Inserts sib tree before `self`.
     /// The newly inserted node will not be iterated over by the currently running iterator.
