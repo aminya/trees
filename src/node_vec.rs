@@ -7,7 +7,7 @@ use crate::{TupleTree, TupleForest};
 use crate::rust::*;
 
 /// Buffer for storing nodes in contiguous memory allocation.
-pub(crate) struct NodeVec<T> {
+pub struct NodeVec<T> {
     pub(crate) buf     : Vec<Shared<RefCell<Node<T>>>>,
     pub(crate) ref_cnt : Cell<usize>, // alive node count
 }

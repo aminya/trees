@@ -10,7 +10,7 @@ use super::{Forest, Iter, IterMut, NodeVec, Tree};
 
 /// Data associated with `Node`.
 #[derive( Debug, PartialEq, Eq, PartialOrd, Ord, Hash )]
-pub(crate) enum Data<T> {
+pub enum Data<T> {
     None,
     ScatteredNone{          owner: NonNull<RefCell<Node<T>>> },
     Scattered    { data: T, owner: NonNull<RefCell<Node<T>>> },
@@ -92,13 +92,13 @@ impl<T> AsMut<T> for Data<T> {
 /// Composed of `data` and a list of its child `Node`s.
 /// Size infomation tracked.
 pub struct Node<T> {
-    pub(crate) prev : Option<NonNull<Node<T>>>,
-    pub(crate) next : Option<NonNull<Node<T>>>,
+    pub prev : Option<NonNull<Node<T>>>,
+    pub next : Option<NonNull<Node<T>>>,
     pub(crate) head : Option<NonNull<Node<T>>>,
     pub(crate) tail : Option<NonNull<Node<T>>>,
     pub(crate) up   : Option<NonNull<Node<T>>>,
     pub(crate) size : Size,
-    pub(crate) data : Data<T>,
+    pub data : Data<T>,
 }
 
 impl<T> Default for Node<T> {
