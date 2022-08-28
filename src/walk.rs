@@ -256,12 +256,18 @@ impl<T> Default for Walk<T> {
 }
 
 /// Depth first search in tree.
-pub struct TreeWalk<T> {
-    tree : Tree<T>,
+pub struct TreeWalk<'a, T> {
     walk : Walk<T>,
+    phantom: PhantomData<&'a T>,
 }
 
-impl<T> TreeWalk<T> {
+impl<'tree, T> TreeWalk<'tree, T> {
+    pub fn new( tree: &'tree Tree<T> ) -> Self {
+        let mut walk = Walk::<T>::default();
+        walk.on_node( Some( tree.root().non_null() ));
+        TreeWalk{ walk, phantom: PhantomData }
+    }
+
     /// Returns the current node in the tree traversal, or `None` if the traversal is completed.
     ///
     /// # Examples
@@ -269,7 +275,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) / tr(1)/tr(2)/tr(3);
-    /// let walk = TreeWalk::from( tree );
+    /// let walk = TreeWalk::new( &tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0)/tr(1)/tr(2)/tr(3) ).root() )));
     /// ```
     pub fn get( &self ) -> Option<Visit<T>> { self.walk.get() }
@@ -282,7 +288,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = TreeWalk::from( tree );
+    /// let mut walk = TreeWalk::new( &tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
     /// walk.forward();
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -318,7 +324,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) / tr(1)/tr(2)/tr(3);
-    /// let mut walk = TreeWalk::from( tree );
+    /// let mut walk = TreeWalk::new( &tree );
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(1).root() )));
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(2).root() )));
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(3).root() )));
@@ -335,7 +341,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = TreeWalk::from( tree );
+    /// let mut walk = TreeWalk::new( &tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
     /// walk.forward();
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -350,7 +356,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = TreeWalk::from( tree );
+    /// let mut walk = TreeWalk::new( &tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
     /// assert_eq!( walk.get_parent(), None );
     /// walk.forward();
@@ -367,7 +373,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = TreeWalk::from( tree );
+    /// let mut walk = TreeWalk::new( &tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
     /// walk.to_child( 1 );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(4)/tr(5)/tr(6)).root() )));
@@ -382,7 +388,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) / tr(1)/tr(2)/tr(3);
-    /// let mut walk = TreeWalk::from( tree );
+    /// let mut walk = TreeWalk::new( &tree );
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(1).root() )));
     /// assert_eq!( walk.to_sib( 0 ), Some( Visit::Leaf( tr(1).root() )));
     /// assert_eq!( walk.to_sib( 2 ), Some( Visit::Leaf( tr(3).root() )));
@@ -397,7 +403,7 @@ impl<T> TreeWalk<T> {
     /// ```
     /// use trees::{TreeWalk, tr, walk::Visit};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = TreeWalk::from( tree );
+    /// let mut walk = TreeWalk::new( &tree );
     /// for _ in 0..3 {
     ///     for _ in 0..3 {
     ///         walk.revisit();
@@ -436,31 +442,33 @@ impl<T> TreeWalk<T> {
     pub fn revisit( &mut self ) { self.walk.revisit(); }
 }
 
-impl<T> From<Tree<T>> for TreeWalk<T> {
+impl<T> From<Tree<T>> for TreeWalk<'_, T> {
     fn from( tree: Tree<T> ) -> Self {
         let mut walk = Walk::<T>::default();
         walk.on_node( Some( tree.root().non_null() ));
-        TreeWalk{ tree, walk }
-    }
-}
-
-impl<T> From<TreeWalk<T>> for Tree<T> {
-    fn from( walk: TreeWalk<T> ) -> Self {
-        walk.tree
+        TreeWalk{ walk, phantom: PhantomData }
     }
 }
 
 /// Depth first search in forest.
 #[derive( Default )]
-pub struct ForestWalk<T> {
-    forest : Forest<T>,
+pub struct ForestWalk<'forest, T> {
     walk   : Walk<T>,
+    phantom: PhantomData<&'forest T>,
 }
 
-unsafe impl<T:Send> Send for TreeWalk<T> {}
-unsafe impl<T:Sync> Sync for TreeWalk<T> {}
+unsafe impl<'tree, T:Send> Send for TreeWalk<'tree, T> {}
+unsafe impl<'tree, T:Sync> Sync for TreeWalk<'tree, T> {}
 
-impl<T> ForestWalk<T> {
+impl<'forest, T> ForestWalk<'forest, T> {
+    pub fn new( forest: &'forest Forest<T> ) -> Self {
+        let mut walk = Walk::<T>::default();
+        if !forest.has_no_child() {
+            walk.on_forest( forest.front().map( |front| front.non_null() ));
+        }
+        ForestWalk{ walk, phantom: PhantomData }
+    }
+
     /// Returns the current node in the forest traversal, or `None` if the traversal is completed.
     ///
     /// # Examples
@@ -468,7 +476,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = -tr(1)-tr(2)-tr(3);
-    /// let walk = ForestWalk::from( forest );
+    /// let walk = ForestWalk::new( &forest );
     /// assert_eq!( walk.get(), Some( Visit::Leaf( tr(1).root() )));
     /// ```
     pub fn get( &self ) -> Option<Visit<T>> { self.walk.get() }
@@ -481,7 +489,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = ForestWalk::from( forest );
+    /// let mut walk = ForestWalk::new( &forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
     /// walk.forward();
     /// assert_eq!( walk.get(), Some( Visit::Leaf ( tr(2).root() )));
@@ -514,7 +522,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = -tr(1)-tr(2)-tr(3);
-    /// let mut walk = ForestWalk::from( forest );
+    /// let mut walk = ForestWalk::new( &forest );
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(2).root() )));
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(3).root() )));
     /// assert_eq!( walk.next(), None );
@@ -529,7 +537,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = ForestWalk::from( forest );
+    /// let mut walk = ForestWalk::new( &forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
     /// walk.forward();
     /// assert_eq!( walk.get(), Some( Visit::Leaf ( tr(2).root() )));
@@ -544,7 +552,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = ForestWalk::from( forest );
+    /// let mut walk = ForestWalk::new( &forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
     /// assert_eq!( walk.get_parent(), None );
     /// walk.forward();
@@ -561,7 +569,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = ForestWalk::from( forest );
+    /// let mut walk = ForestWalk::new( &forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
     /// walk.to_child( 1 );
     /// assert_eq!( walk.get(), Some( Visit::Leaf ( tr(3).root() )));
@@ -576,7 +584,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = -tr(1)-tr(2)-tr(3);
-    /// let mut walk = ForestWalk::from( forest );
+    /// let mut walk = ForestWalk::new( &forest );
     /// assert_eq!( walk.get(), Some( Visit::Leaf( tr(1).root() )));
     /// assert_eq!( walk.to_sib( 0 ), Some( Visit::Leaf( tr(1).root() )));
     /// assert_eq!( walk.to_sib( 2 ), Some( Visit::Leaf( tr(3).root() )));
@@ -591,7 +599,7 @@ impl<T> ForestWalk<T> {
     /// ```
     /// use trees::{ForestWalk, tr, walk::Visit};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-    /// let mut walk = ForestWalk::from( forest );
+    /// let mut walk = ForestWalk::new( &forest );
     /// for _ in 0..3 {
     ///     walk.revisit();
     ///     assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -622,24 +630,18 @@ impl<T> ForestWalk<T> {
     pub fn revisit( &mut self ) { self.walk.revisit(); }
 }
 
-impl<T> From<Forest<T>> for ForestWalk<T> {
+impl<T> From<Forest<T>> for ForestWalk<'_, T> {
     fn from( forest: Forest<T> ) -> Self {
         let mut walk = Walk::<T>::default();
         if !forest.has_no_child() {
             walk.on_forest( forest.front().map( |front| front.non_null() ));
         }
-        ForestWalk{ forest, walk }
+        ForestWalk{ walk, phantom: PhantomData }
     }
 }
 
-impl<T> From<ForestWalk<T>> for Forest<T> {
-    fn from( walk: ForestWalk<T> ) -> Self {
-        walk.forest
-    }
-}
-
-unsafe impl<T:Send> Send for ForestWalk<T> {}
-unsafe impl<T:Sync> Sync for ForestWalk<T> {}
+unsafe impl<'forest, T:Send> Send for ForestWalk<'forest, T> {}
+unsafe impl<'forest, T:Sync> Sync for ForestWalk<'forest, T> {}
 
 #[cfg( miri )]
 mod miri_tests {
@@ -648,7 +650,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) / tr(1)/tr(2)/tr(3);
-            let walk = TreeWalk::from( tree );
+            let walk = TreeWalk::new( &tree );
             assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0)/tr(1)/tr(2)/tr(3) ).root() )));
         }
 
@@ -656,7 +658,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-            let mut walk = TreeWalk::from( tree );
+            let mut walk = TreeWalk::new( &tree );
             assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
             walk.forward();
             assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -686,7 +688,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) / tr(1)/tr(2)/tr(3);
-            let mut walk = TreeWalk::from( tree );
+            let mut walk = TreeWalk::new( &tree );
             assert_eq!( walk.next(), Some( Visit::Leaf( tr(1).root() )));
             assert_eq!( walk.next(), Some( Visit::Leaf( tr(2).root() )));
             assert_eq!( walk.next(), Some( Visit::Leaf( tr(3).root() )));
@@ -699,7 +701,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-            let mut walk = TreeWalk::from( tree );
+            let mut walk = TreeWalk::new( &tree );
             assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
             walk.forward();
             assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -710,7 +712,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-            let mut walk = TreeWalk::from( tree );
+            let mut walk = TreeWalk::new( &tree );
             assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
             assert_eq!( walk.get_parent(), None );
             walk.forward();
@@ -722,7 +724,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-            let mut walk = TreeWalk::from( tree );
+            let mut walk = TreeWalk::new( &tree );
             assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
             walk.to_child( 1 );
             assert_eq!( walk.get(), Some( Visit::Begin( (tr(4)/tr(5)/tr(6)).root() )));
@@ -732,7 +734,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) / tr(1)/tr(2)/tr(3);
-            let mut walk = TreeWalk::from( tree );
+            let mut walk = TreeWalk::new( &tree );
             assert_eq!( walk.next(), Some( Visit::Leaf( tr(1).root() )));
             assert_eq!( walk.to_sib( 0 ), Some( Visit::Leaf( tr(1).root() )));
             assert_eq!( walk.to_sib( 2 ), Some( Visit::Leaf( tr(3).root() )));
@@ -742,7 +744,7 @@ mod miri_tests {
             use crate::{TreeWalk, tr, walk::Visit};
 
             let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-            let mut walk = TreeWalk::from( tree );
+            let mut walk = TreeWalk::new( &tree );
             for _ in 0..3 {
                 for _ in 0..3 {
                     walk.revisit();
@@ -785,7 +787,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = -tr(1)-tr(2)-tr(3);
-            let walk = ForestWalk::from( forest );
+            let walk = ForestWalk::new( &forest );
             assert_eq!( walk.get(), Some( Visit::Leaf( tr(1).root() )));
         }
 
@@ -793,7 +795,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-            let mut walk = ForestWalk::from( forest );
+            let mut walk = ForestWalk::new( &forest );
             assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
             walk.forward();
             assert_eq!( walk.get(), Some( Visit::Leaf ( tr(2).root() )));
@@ -820,7 +822,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = -tr(1)-tr(2)-tr(3);
-            let mut walk = ForestWalk::from( forest );
+            let mut walk = ForestWalk::new( &forest );
             assert_eq!( walk.next(), Some( Visit::Leaf( tr(2).root() )));
             assert_eq!( walk.next(), Some( Visit::Leaf( tr(3).root() )));
             assert_eq!( walk.next(), None );
@@ -831,7 +833,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-            let mut walk = ForestWalk::from( forest );
+            let mut walk = ForestWalk::new( &forest );
             assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
             walk.forward();
             assert_eq!( walk.get(), Some( Visit::Leaf ( tr(2).root() )));
@@ -842,7 +844,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-            let mut walk = ForestWalk::from( forest );
+            let mut walk = ForestWalk::new( &forest );
             assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
             assert_eq!( walk.get_parent(), None );
             walk.forward();
@@ -854,7 +856,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-            let mut walk = ForestWalk::from( forest );
+            let mut walk = ForestWalk::new( &forest );
             assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
             walk.to_child( 1 );
             assert_eq!( walk.get(), Some( Visit::Leaf ( tr(3).root() )));
@@ -864,7 +866,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = -tr(1)-tr(2)-tr(3);
-            let mut walk = ForestWalk::from( forest );
+            let mut walk = ForestWalk::new( &forest );
             assert_eq!( walk.get(), Some( Visit::Leaf( tr(1).root() )));
             assert_eq!( walk.to_sib( 0 ), Some( Visit::Leaf( tr(1).root() )));
             assert_eq!( walk.to_sib( 2 ), Some( Visit::Leaf( tr(3).root() )));
@@ -874,7 +876,7 @@ mod miri_tests {
             use crate::{ForestWalk, tr, walk::Visit};
 
             let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-            let mut walk = ForestWalk::from( forest );
+            let mut walk = ForestWalk::new( &forest );
             for _ in 0..3 {
                 walk.revisit();
                 assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));

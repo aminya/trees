@@ -15,7 +15,7 @@ any time. To restart DFS search of a node, use `revisit()`.
 use trees::{tr, Visit, TreeWalk};
 
 let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-let mut walk = TreeWalk::from( tree );
+let mut walk = TreeWalk::new( &tree );
 assert_eq!( walk.get(), Some( Visit::Begin(
     ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) )
     .root() )));
