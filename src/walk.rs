@@ -268,6 +268,12 @@ impl<'tree, T> TreeWalk<'tree, T> {
         TreeWalk{ walk, phantom: PhantomData }
     }
 
+    pub fn on_node( node: &'tree Node<T> ) -> Self {
+        let mut walk = Walk::<T>::default();
+        walk.on_node( Some( node.non_null() ));
+        TreeWalk{ walk, phantom: PhantomData }
+    }
+
     /// Returns the current node in the tree traversal, or `None` if the traversal is completed.
     ///
     /// # Examples
